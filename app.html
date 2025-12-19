@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Global Foodie</title>
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
+  <link href="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+	<style>
+    /* Sidebar open/close button */
+    #sidebar-toggle {
+      position: fixed;
+      left: 18px;
+      top: 18px;
+      z-index: 30;
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5em;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0002;
+      opacity: 0.85;
+      transition: background 0.2s;
+    }
+    #sidebar-toggle:hover { background: #333; }
+    /* Back to globe button */
+    #back-to-globe {
+      position: fixed;
+      left: 24px;
+      bottom: 24px;
+      z-index: 10;
+      background: #fff;
+      color: #7c3aed;
+      border: 2px solid #7c3aed;
+      border-radius: 20px;
+      padding: 6px 18px;
+      font-size: 1.1em;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 2px 8px #0001;
+      opacity: 0.95;
+      transition: background 0.2s, color 0.2s;
+      display: none;
+    }
+    #back-to-globe:hover { background: #7c3aed; color: #fff; }
+		/* Base layout */
+		html, body { height:100%; margin:0; }
+    body {
+      background: #b82bed; /* fallback */
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      color: white;
+      overflow: hidden;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    #splash, #splash * {
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important;
+    }
+
+		/* Polka-dot pattern (small dots) */
+		:root{ --polka-size:8px; --polka-gap:12px; --polka-color: rgba(0,0,0,0.08); }
+		body::before{
+			content:"";
+			display: none !important;
+		}
+
+		/* Splash screen */
+  #splash{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    z-index:6;
+    cursor:pointer;
+    text-align:center;
+    background: #7c3aed;
+  }
+  #splash::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: url('assets/polka-dots.png') repeat;
+    background-size: auto;
+    opacity: 1;
+    pointer-events: none;
+  }
+  .splash-overlay-text { z-index: 4 !important; position: relative; }
+  .splash-subtitle {
+    color: #ff0000;
+    font-size: 2vw;
+    font-weight: bold;
+    margin: 18px 0 0 0;
+    text-align: center;
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 12px #fff8;
+  }
+  .splash-image-stack {
+    position:relative;
+    width:100vw;
+    height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+  }
+  .full-hand-globe {
+    width:100vw;
+    height:100vh;
+    max-width:none;
+    max-height:none;
+    object-fit:cover;
+    display:block;
+    margin:0;
+    z-index:1;
+    position:relative;
+  }
+  .spinning-globe-overlay {
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    width:48vw;
+    height:48vw;
+    min-width:400px;
+    min-height:400px;
+    max-width:900px;
+    max-height:900px;
+    z-index:1;
+    pointer-events:none;
+  }
+  .full-hand-globe {
+    z-index:2;
+    position:relative;
+  }
+  .splash-overlay-text {
+    z-index:4 !important;
+  }
+  .splash-overlay-text {
+    z-index:4 !important;
+  }
+  .splash-overlay-text {
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    z-index:2;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    width:100%;
+  }
+  .splash-title {
+    color:#ff0000 !important;
+    font-size:4vw;
+    font-weight:bold;
+    margin:0 0 32px 0;
+    text-align:center;
+    letter-spacing:1px;
+    text-shadow:0 2px 12px #fff8;
+  }
+  .splash-enter-btn {
+    margin-top:18px;
+    font-size:1.1vw;
+    padding:10px 28px;
+    background:#111;
+    color:#fff;
+    font-weight:600;
+    border:none;
+    border-radius:12px;
+    box-shadow:0 2px 12px #0002;
+    cursor:pointer;
+    letter-spacing:0.5px;
+    transition: background 0.2s;
+  }
+  .splash-enter-btn:hover {
+    background:#333;
+  }
+		/* create a mirrored back-face using the same PNG so rotateY never shows empty back */
+		#splash .wire-globe::after{ content:''; position:absolute; left:0; top:0; width:100%; height:100%; background-image:url('assets/globe.png'); background-size:100% 100%; background-repeat:no-repeat; background-position:center; transform:rotateY(180deg); backface-visibility:hidden; -webkit-backface-visibility:hidden; pointer-events:none; }
+		/* mask to hide a portion (the woman), tweak values as needed */
+		#splash-mask{ position:absolute; right:6%; bottom:18%; width:22%; height:34%; background:linear-gradient(90deg, rgba(184,43,237,0.0), rgba(184,43,237,0.96)); border-radius:48%; pointer-events:none; }
+		/* spin the image around the Y axis (clockwise) with 3D perspective */
+		#splash{ perspective: 1200px; -webkit-perspective:1200px; }
+		#splash .wire-globe{ transform-style: preserve-3d; -webkit-transform-style: preserve-3d; backface-visibility: hidden; -webkit-backface-visibility: hidden; animation: spin-y 28s linear infinite; transform-origin:50% 50% 0; }
+  @keyframes spin-y { from { transform: translate(-50%,-50%) rotateY(0deg); } to { transform: translate(-50%,-50%) rotateY(360deg); } }
+		#splash h1{ font-size:clamp(28px,6vw,96px); margin:0; color:#ffffff; letter-spacing:0.5px; text-shadow:0 6px 18px rgba(0,0,0,0.25); z-index:2; position:relative; }
+		#splash p{ margin-top:10px; font-size:clamp(12px,2.2vw,18px); color:#ff2b2b; opacity:0.98; z-index:2; position:relative; }
+		/* legacy svg rule removed; Y-axis animation above handles image and SVG uniformly */
+		#splash .wire-globe svg{ transform-style: preserve-3d; -webkit-transform-style: preserve-3d; backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+
+		/* Map / globe area */
+		#globe-container{ position:fixed; inset:0; display:none; z-index:1; }
+		/* search marker style */
+		.search-marker{ width:36px; height:36px; border-radius:50%; background:radial-gradient(circle at 30% 30%, #fff, #fff0); box-shadow:0 6px 18px rgba(0,0,0,0.3); display:block; }
+		.search-marker::before{ content:''; display:block; width:100%; height:100%; background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%231543ff" d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5a2.5 2.5 0 1 1 0-5 2.5 2.5 0 0 1 0 5z"/></svg>'); background-size:70% 70%; background-repeat:no-repeat; background-position:center; }
+		/* Make the canvas transparent so polka-dots show around/behind globe */
+		#globe-container .mapboxgl-canvas { background: transparent !important; }
+
+		/* Sky tint overlay (preserve stars by using blend) */
+		#sky-tint{ position:fixed; inset:0; z-index:1000; pointer-events:none; display:block !important; mix-blend-mode:color; background:#b82bed; opacity:0.95; }
+
+		/* Top-center search UI (Mapbox Geocoder will be inserted into this container) */
+		#search-center{ position:fixed; left:50%; transform:translateX(-50%); top:18px; z-index:7; width:min(720px,92%); display:none; }
+		.geocoder { width:100%; }
+
+		/* Additional controls */
+		#controls{ position:fixed; right:18px; top:18px; z-index:8; display:none; gap:8px; align-items:center; }
+		#controls select, #controls input[type=range]{ background:rgba(255,255,255,0.08); color:white; border:1px solid rgba(255,255,255,0.06); padding:8px 10px; border-radius:8px; }
+
+		.attribution{ position:fixed; left:12px; bottom:12px; z-index:8; font-size:12px; color:rgba(255,255,255,0.9); display:none; }
+
+		/* small, unobtrusive globe title centered over globe */
+		#globe-title{ position:fixed; left:50%; transform:translateX(-50%); bottom:22%; z-index:6; pointer-events:none; text-align:center; display:none; }
+		#globe-title h2{ margin:0; font-size:clamp(18px,2.4vw,36px); color:#ff2b2b; text-shadow:0 6px 18px rgba(0,0,0,0.25); }
+		#globe-title p{ margin:6px 0 0 0; font-size:14px; color:rgba(255,255,255,0.95); }
+
+		/* Small responsive tweaks */
+		@media (max-width:520px){ #splash h1{ font-size:36px } }
+
+		#search-bar { position:fixed; top:24px; left:50%; transform:translateX(-50%); z-index:10; width:340px; max-width:90vw; display:none; }
+		#sidebar { position:fixed; right:0; top:0; width:340px; max-width:90vw; height:100vh; background:#fff; color:#222; z-index:20; box-shadow:-2px 0 12px #0002; overflow-y:auto; display:none; padding:24px 16px 16px 16px; }
+		#sidebar h2 { margin-top:0; font-size:1.3em; }
+		.restaurant { margin-bottom:18px; border-bottom:1px solid #eee; padding-bottom:12px; }
+		.restaurant img { width:100%; max-width:300px; border-radius:8px; margin-bottom:6px; }
+		.restaurant a { color:#b82bed; text-decoration:underline; }
+		#sidebar-close { position:absolute; top:12px; right:16px; background:none; border:none; font-size:1.5em; color:#b82bed; cursor:pointer; }
+	</style>
+</head>
+<body>
+  <button id="sidebar-toggle" title="Open sidebar">&#9776;</button>
+  <button id="back-to-globe">Back to Globe</button>
+    <div id="splash">
+      <div class="splash-image-stack">
+  <img src="assets/hand-globe-new.png" alt="hands holding globe" class="full-hand-globe" onerror="this.style.display='none';console.warn('Image not found: assets/hand-globe-new.png')" />
+  <div id="spinning-globe-overlay" class="spinning-globe-overlay"></div>
+        <div class="splash-overlay-text">
+          <h1 class="splash-title">Welcome to the global foodie</h1>
+          <div class="splash-subtitle">the unlimited food search engine</div>
+          <button id="enter-btn" class="splash-enter-btn">Enter</button>
+        </div>
+      </div>
+    </div>
+    <div id="globe-container"></div>
+	<div id="search-bar"></div>
+	<div id="sidebar">
+	  <button id="sidebar-close">&times;</button>
+	  <h2>Restaurants</h2>
+	  <div id="restaurant-list"></div>
+	</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
+<script src="https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-geocoder/v4.7.2/mapbox-gl-geocoder.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Global references for splash and globeContainer
+  const splash = document.getElementById('splash');
+  const globeContainer = document.getElementById('globe-container');
+  // Sidebar open/close and back button logic
+  const sidebar = document.getElementById('sidebar');
+  const sidebarToggle = document.getElementById('sidebar-toggle');
+  const sidebarClose = document.getElementById('sidebar-close');
+  const backToGlobe = document.getElementById('back-to-globe');
+  // Open sidebar
+  sidebarToggle.addEventListener('click', function() {
+    sidebar.style.display = 'block';
+    sidebarToggle.style.display = 'none';
+  });
+  // Close sidebar
+  sidebarClose.addEventListener('click', function() {
+    sidebar.style.display = 'none';
+    sidebarToggle.style.display = 'flex';
+  });
+  // Back to globe resets the map view
+  let mapInstance = null;
+  backToGlobe.addEventListener('click', function() {
+    if (mapInstance) {
+      mapInstance.flyTo({ center: [-73.9857, 40.7484], zoom: 2, essential: true });
+    }
+  });
+  // Add 3D spinning globe overlay to splash
+  const globeOverlay = document.getElementById('spinning-globe-overlay');
+  if (globeOverlay) {
+    // Wait for layout to ensure correct size
+    setTimeout(() => {
+      const size = globeOverlay.offsetWidth;
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setPixelRatio(window.devicePixelRatio || 1);
+      renderer.setSize(size, size);
+      globeOverlay.appendChild(renderer.domElement);
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
+      camera.position.z = 2.6;
+      const group = new THREE.Group(); scene.add(group);
+      const geom = new THREE.SphereGeometry(1, 64, 64);
+      const edges = new THREE.EdgesGeometry(geom);
+      const lineMat = new THREE.LineBasicMaterial({ color: 0x0018ff, linewidth: 1 });
+      const lines = new THREE.LineSegments(edges, lineMat);
+      group.add(lines);
+      const surfMat = new THREE.MeshPhongMaterial({ color: 0x11111a, emissive:0x081032, specular:0x222244, shininess:5, transparent:true, opacity:0.06 });
+      const surf = new THREE.Mesh(geom, surfMat); group.add(surf);
+      const amb = new THREE.AmbientLight(0xffffff, 0.6); scene.add(amb);
+      const p = new THREE.PointLight(0xffffff, 0.6); p.position.set(5,5,5); scene.add(p);
+      function animate() { requestAnimationFrame(animate); group.rotation.y -= 0.002; renderer.render(scene, camera); }
+      animate();
+    }, 100);
+  }
+  // Track all open popups and previously viewed places
+  window._allPopups = [];
+  window._viewedPlaces = [];
+  window._lastFeatures = null;
+  window._lastMap = null;
+    // Splash globe
+  // (already declared above)
+    const enterBtn = document.getElementById('enter-btn');
+    // Three.js wireframe globe
+    function initSplashThree() {
+        const container = document.querySelector('#splash .wire-globe');
+        if (!container) return;
+        while (container.firstChild) container.removeChild(container.firstChild);
+        const size = Math.min(window.innerWidth * 0.78, 420);
+        container.style.width = size + 'px'; container.style.height = size + 'px';
+        const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setPixelRatio(window.devicePixelRatio || 1);
+        renderer.setSize(size, size);
+        renderer.domElement.style.display = 'block';
+        container.appendChild(renderer.domElement);
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 1000);
+        camera.position.z = 2.6;
+        const group = new THREE.Group(); scene.add(group);
+        const geom = new THREE.SphereGeometry(1, 64, 64);
+        const edges = new THREE.EdgesGeometry(geom);
+        const lineMat = new THREE.LineBasicMaterial({ color: 0x0018ff, linewidth: 1 });
+        const lines = new THREE.LineSegments(edges, lineMat);
+        group.add(lines);
+        const surfMat = new THREE.MeshPhongMaterial({ color: 0x11111a, emissive:0x081032, specular:0x222244, shininess:5, transparent:true, opacity:0.06 });
+        const surf = new THREE.Mesh(geom, surfMat); group.add(surf);
+        const amb = new THREE.AmbientLight(0xffffff, 0.6); scene.add(amb);
+        const p = new THREE.PointLight(0xffffff, 0.6); p.position.set(5,5,5); scene.add(p);
+        let down=false, lastX=0, lastY=0;
+        renderer.domElement.addEventListener('pointerdown', (e)=>{ down=true; lastX=e.clientX; lastY=e.clientY; renderer.domElement.setPointerCapture(e.pointerId); });
+        window.addEventListener('pointermove', (e)=>{ if (!down) return; const dx=(e.clientX-lastX)/200; const dy=(e.clientY-lastY)/200; group.rotation.y += dx; group.rotation.x += dy; lastX=e.clientX; lastY=e.clientY; });
+        window.addEventListener('pointerup', ()=>{ down=false; });
+        function animate() { requestAnimationFrame(animate); group.rotation.y -= 0.002; renderer.render(scene, camera); }
+        animate();
+    }
+    initSplashThree();
+    // Splash to map transition
+  if (enterBtn) {
+    enterBtn.addEventListener('click', function(e) {
+      splash.style.display = 'none';
+      globeContainer.style.display = 'block';
+      sidebarToggle.style.display = 'flex';
+      backToGlobe.style.display = 'none'; // Only show after zoom
+      initMapbox();
+    });
+  }
+    // Mapbox globe
+    function initMapbox() {
+      mapboxgl.accessToken = 'pk.eyJ1IjoiYWRhbXJhZGhpYTEiLCJhIjoiY21pcm9wb250MDJvajNjbjUzZzlxenp3bCJ9.0g6OE5Sig5wxzpyICUBfqw';
+      const mapDiv = document.createElement('div');
+      mapDiv.id = 'map';
+      mapDiv.style = 'width:100vw;height:100vh;';
+      globeContainer.innerHTML = '';
+      globeContainer.appendChild(mapDiv);
+      globeContainer.style.display = 'block';
+  const map = new mapboxgl.Map({
+          container: 'map',
+          style: 'mapbox://styles/mapbox/satellite-streets-v11',
+          center: [-73.9857, 40.7484],
+          zoom: 2,
+          minZoom: 1,
+          maxZoom: 20
+      });
+      map.addControl(new mapboxgl.NavigationControl());
+      showSearchBar(map);
+      // Only show backToGlobe after zoom in
+      map.on('zoom', function() {
+        if (map.getZoom() > 2) {
+          backToGlobe.style.display = 'inline-block';
+        } else {
+          backToGlobe.style.display = 'none';
+        }
+      });
+      // Store map instance for backToGlobe
+      mapInstance = map;
+    }
+    function showSearchBar(map) {
+      const searchBar = document.getElementById('search-bar');
+      searchBar.style.display = 'block';
+      const geocoder = new MapboxGeocoder({
+        accessToken: mapboxgl.accessToken,
+        mapboxgl: mapboxgl,
+        marker: false,
+        placeholder: 'Search for a city...'
+      });
+      searchBar.innerHTML = '';
+      searchBar.appendChild(geocoder.onAdd(map));
+      geocoder.on('result', function(e) {
+        if (e.result && e.result.center) {
+          map.flyTo({ center: e.result.center, zoom: 15, essential: true });
+          map.once('moveend', function() {
+            map.setStyle('mapbox://styles/mapbox/satellite-streets-v11');
+            fetchAndShowRestaurants(e.result.center, map);
+          });
+        }
+      });
+    }
+    function fetchAndShowRestaurants(center, map) {
+      const [lng, lat] = center;
+      const apiKey = 'AIzaSyB5LGXJhOUkzA98lEL3i0xbJMBaqj4gzgc';
+      const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=1500&type=restaurant&key=${apiKey}`;
+      // Use a CORS proxy for demo (remove in production)
+      const proxyUrl = 'https://corsproxy.io/?';
+      fetch(proxyUrl + encodeURIComponent(url))
+        .then(res => res.json())
+        .then(data => {
+          if (!data.results) return;
+          const features = data.results.map(place => ({
+            name: place.name,
+            address: place.vicinity,
+            lat: place.geometry.location.lat,
+            lon: place.geometry.location.lng,
+                photos: (place.photos || []).map(p => `https://maps.googleapis.com/maps/api/place/photo?maxwidth=400&photoreference=${p.photo_reference}&key=${apiKey}`).slice(0, 10),
+            rating: place.rating,
+            cuisine: (place.types || []).join(', '),
+            place_id: place.place_id
+          }));
+          // Sort by distance to center
+          function haversine(lon1, lat1, lon2, lat2) {
+            const R = 6371e3;
+            const toRad = x => x * Math.PI / 180;
+            const dLat = toRad(lat2-lat1);
+            const dLon = toRad(lon2-lon1);
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+          }
+          features.forEach(f => {
+            f.distance = haversine(lng, lat, f.lon, f.lat);
+          });
+          features.sort((a, b) => a.distance - b.distance);
+          // Always add markers with popups for each restaurant
+          features.forEach((f, idx) => {
+            const el = document.createElement('div');
+            el.style.background = 'transparent';
+            el.style.border = '2px solid #ff2b2b';
+            el.style.width = '18px';
+            el.style.height = '18px';
+            el.style.borderRadius = '50%';
+            el.style.display = 'flex';
+            el.style.alignItems = 'center';
+            el.style.justifyContent = 'center';
+            el.style.color = '#ff2b2b';
+            el.style.fontWeight = 'bold';
+            el.innerText = 'R';
+            // Carousel HTML with inline JS for Google images
+            let popupHtml = `<div style='width:270px;max-width:95vw;text-align:center;color:#ff2b2b;background:#7c3aed;border-radius:16px;padding:12px 8px 16px 8px;box-sizing:border-box;position:relative;'>`;
+            // Add a more visible exit button that works
+            popupHtml += `<button id='custom-close-${idx}' style='position:absolute;top:10px;right:10px;z-index:10;background:#fff;border:none;color:#7c3aed;font-size:2em;font-weight:bold;width:36px;height:36px;line-height:36px;border-radius:50%;box-shadow:0 2px 8px #0002;cursor:pointer;'>×</button>`;
+            if (f.photos && f.photos.length) {
+              popupHtml += `<div id='carousel-${idx}' style='position:relative;width:100%;height:180px;overflow:hidden;margin-bottom:10px;'>`;
+              f.photos.forEach((url, i) => {
+                popupHtml += `<img src='${url}' style='width:100%;height:180px;object-fit:cover;display:${i===0?'block':'none'};border-radius:12px;' class='carousel-img-${idx}'>`;
+              });
+              popupHtml += `<button style='position:absolute;top:50%;left:8px;transform:translateY(-50%);background:rgba(255,255,255,0.85);border:none;font-size:1.5em;cursor:pointer;padding:2px 8px;border-radius:50%;box-shadow:0 1px 4px #0001;color:#ff2b2b;' onclick='(function(){var imgs=document.querySelectorAll(".carousel-img-${idx}");var cur=Array.from(imgs).findIndex(img=>img.style.display==="block");imgs[cur].style.display="none";imgs[(cur-1+imgs.length)%imgs.length].style.display="block";})()'>&lt;</button>`;
+              popupHtml += `<button style='position:absolute;top:50%;right:8px;transform:translateY(-50%);background:rgba(255,255,255,0.85);border:none;font-size:1.5em;cursor:pointer;padding:2px 8px;border-radius:50%;box-shadow:0 1px 4px #0001;color:#ff2b2b;' onclick='(function(){var imgs=document.querySelectorAll(".carousel-img-${idx}");var cur=Array.from(imgs).findIndex(img=>img.style.display==="block");imgs[cur].style.display="none";imgs[(cur+1)%imgs.length].style.display="block";})()'>&gt;</button>`;
+              popupHtml += `</div>`;
+            }
+            popupHtml += `<div style='margin-top:8px;'><span style='color:#ff2b2b;font-weight:bold;font-size:1.15em;'>${f.name}</span><br><span style='font-size:1em;'>${f.cuisine ? f.cuisine : 'Restaurant'}</span><br>Rating: ${f.rating ? f.rating : 'N/A'}</div>`;
+            // Add reviews link
+            if (f.place_id) {
+              popupHtml += `<div style='margin-top:8px;'><a href='https://www.google.com/maps/place/?q=place_id:${f.place_id}' target='_blank' style='color:#fff;background:#ff2b2b;padding:4px 10px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;margin-top:4px;'>Read Reviews</a></div>`;
+            }
+            popupHtml += `</div>`;
+            // Track popups for closing
+            const popup = new mapboxgl.Popup().setHTML(popupHtml);
+            const marker = new mapboxgl.Marker(el)
+              .setLngLat([f.lon, f.lat])
+              .setPopup(popup)
+              .addTo(map);
+            window._allPopups.push(popup);
+            // Fix close button after popup is added to DOM
+            marker.getElement().addEventListener('click', () => {
+              setTimeout(() => {
+                const btn = document.getElementById('custom-close-' + idx);
+                if (btn) btn.onclick = () => popup.remove();
+              }, 100);
+            });
+            // Track previously viewed
+            el.addEventListener('click', () => {
+              if (!window._viewedPlaces.find(p => p.place_id === f.place_id)) {
+                window._viewedPlaces.push({
+                  name: f.name,
+                  place_id: f.place_id,
+                  cuisine: f.cuisine,
+                  rating: f.rating
+                });
+                if (window.updatePreviouslyViewed) window.updatePreviouslyViewed();
+              }
+            });
+          });
+          // Always show sidebar after markers
+          showSidebar(features, map);
+        });
+    }
+    function showSidebar(restaurants, map) {
+      var sidebar = document.getElementById('sidebar');
+      var list = document.getElementById('restaurant-list');
+  sidebar.style.display = 'block';
+  sidebarToggle.style.display = 'none';
+      list.innerHTML = '';
+      // Previously viewed section
+      if (window._viewedPlaces && window._viewedPlaces.length) {
+        var prevDiv = document.createElement('div');
+        prevDiv.innerHTML = `<div style='font-weight:bold;margin-bottom:4px;color:#7c3aed;'>Previously Viewed</div>`;
+        window._viewedPlaces.slice(-5).reverse().forEach((p) => {
+          var item = document.createElement('div');
+          item.className = 'restaurant';
+          item.innerHTML = `<b>${p.name}</b><br><span style='font-size:0.95em;'>${p.cuisine ? p.cuisine : 'Restaurant'}</span><br><span style='font-size:0.9em;'>Rating: ${p.rating ? p.rating : 'N/A'}</span>`;
+          item.style.cursor = 'pointer';
+          item.onclick = () => {
+            window.open(`https://www.google.com/maps/place/?q=place_id:${p.place_id}`, '_blank');
+          };
+          prevDiv.appendChild(item);
+        });
+        list.appendChild(prevDiv);
+        list.appendChild(document.createElement('hr'));
+      }
+      var iconUrl = 'https://cdn-icons-png.flaticon.com/512/1046/1046784.png'; // Fork and spoon icon
+      restaurants.forEach(r => {
+        var div = document.createElement('div');
+        div.className = 'restaurant';
+        div.style.cursor = 'pointer';
+        div.innerHTML = `<div style='display:flex;align-items:center;gap:10px;'><img src='${iconUrl}' alt='restaurant icon' style='width:32px;height:32px;object-fit:contain;'><div><strong>${r.name}</strong><br>${r.address}<br></div></div>`;
+        div.onclick = function() {
+          map.flyTo({ center: [r.lon, r.lat], zoom: 18, essential: true });
+        };
+        list.appendChild(div);
+      });
+      document.getElementById('sidebar-close').onclick = function() {
+        sidebar.style.display = 'none';
+        sidebarToggle.style.display = 'flex';
+      };
+      geocoder.on('result', function(e) {
+        // Close all open popups
+        if (window._allPopups) {
+          window._allPopups.forEach(popup => popup.remove());
+          window._allPopups = [];
+        }
+        if (e.result && e.result.center) {
+          map.flyTo({ center: e.result.center, zoom: 15, essential: true });
+          map.once('moveend', function() {
+            map.setStyle('mapbox://styles/mapbox/satellite-streets-v11');
+            fetchAndShowRestaurants(e.result.center, map);
+          });
+        }
+      });
+  window._lastFeatures = features;
+  window._lastMap = map;
+// Helper to update previously viewed section
+window.updatePreviouslyViewed = function() {
+  if (window._lastFeatures && window._lastMap) {
+    showSidebar(window._lastFeatures, window._lastMap);
+  }
+}
+  // ...existing code...
+    }
+});
+</script>
+</body>
+</html>

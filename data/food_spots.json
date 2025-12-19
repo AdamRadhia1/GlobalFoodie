@@ -1,0 +1,32 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [ -77.0365, 38.8977 ] },
+      "properties": {
+        "name": "Le Petit Bistro",
+        "cuisine": "French",
+        "address": "123 Main St, Washington, DC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [ -77.0377, 38.8985 ] },
+      "properties": {
+        "name": "Mama's Pizza",
+        "cuisine": "Italian",
+        "address": "456 Elm St, Washington, DC"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [ -77.0352, 38.8992 ] },
+      "properties": {
+        "name": "Sushi Yama",
+        "cuisine": "Japanese",
+        "address": "789 Oak St, Washington, DC"
+      }
+    }
+  ]
+}
